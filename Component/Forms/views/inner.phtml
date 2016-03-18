@@ -1,0 +1,7 @@
+<div class="form">
+<?php if ($header!='none') { ?><h2><?= $header ?></h2><?php } ?>
+<?= $this->forms->begin_form($form, $form_attrs) ?>
+<?= $this->fields->draw($service_fields) ?>
+<?php include(Component_Forms_Render::template('fields', $form_item)); ?>
+<?= $this->forms->end_form($form); ?>
+</div>
