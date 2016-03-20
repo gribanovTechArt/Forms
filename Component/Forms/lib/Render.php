@@ -1,5 +1,4 @@
 <?php
-
 Core::load('Component.Forms.DB.Items');
 Core::load('CMS.Fields');
 
@@ -18,12 +17,21 @@ class Component_Forms_Render implements Core_ModuleInterface
 	static $js_protect_message = 'Неправильный защитный код. Возможно, у вас отключены cookie или JavaScript';
 	static $js_lib_required = false;
 
-	static function run($p, $ajax = false)
+	/**
+	 * Основной метод рендеринга форм, вызываемый инсершеном %form{form_name} и %ajax_form{form_name}
+	 * %ajax_form{form_name} вызывается с параметром $ajax = true
+	 *
+	 * @param string $form_name
+	 * @param bool $ajax
+	 * @return string
+	 */
+	static function run($form_name, $ajax = false)
 	{
-		$name = trim($p);
+		$name = trim($form_name);
 		$form_item = self::get_form_item($name);
-		if (!$form_item)
-			return "FORM{{$p}}";
+		if (!$form_item) {
+			return "FORM{{$form_name}}";
+		}
 
 		$form = self::item_to_form($form_item);
 		self::$name = $name;
@@ -32,15 +40,27 @@ class Component_Forms_Render implements Core_ModuleInterface
 		$session = Net_HTTP_Session::Store();
 		$session['forms/return_for/' . md5($_SERVER['REQUEST_URI'])] = trim(Component_Forms::$vars['ok']);
 
-		$content = CMS::render_in_page(self::template('layout', $form_item), self::get_render_parms($form, $form_item, false, $ajax));
+		$content = CMS::render_in_page( //TODO: ЧТО ТУТ ПРОИСХОДИТ
+			self::template('layout', $form_item),
+			self::get_render_parms($form, $form_item, false, $ajax)
+		);
+
 		$content = CMS::process_insertions($content);
+
 		return $content;
 	}
 
+	/**
+	 * Возвращает обьект формы c именем $name
+	 *
+	 * @param string $name
+	 * @return Component_Forms_App_DB_Item
+	 */
 	static function get_form_item($name)
 	{
+		/** @var Component_Forms_App_DB_Item $form_item */
 		$full_name = $name;
-		if ($m = Core_Regexps::match_with_results('/^([^\.]+)\./', $name))
+		if ($m = Core_Regexps::match_with_results('/^([^\.]+)\./', $name)) //TODO: ЗАЧЕМ ЭТО?
 			$name = $m[1];
 
 		$form_item = CMS::orm()->forms->name($name)->select_first();
@@ -73,6 +93,14 @@ class Component_Forms_Render implements Core_ModuleInterface
 		return $value;
 	}
 
+	/**
+	 * ???
+	 *
+	 * @param $name
+	 * @param $parms
+	 * @param bool $in
+	 * @return bool
+	 */
 	static function parms_for_form($name, $parms, $in = false)
 	{
 		if ($in && isset($parms['in']) && $parms['in'] != $name || isset($parms['not in']) && $parms['not in'] == $name)
@@ -124,14 +152,22 @@ class Component_Forms_Render implements Core_ModuleInterface
 					return false;
 			}
 		}
+
 		return $out;
 	}
 
+	/**
+	 * @param Component_Forms_App_DB_Item $form_item
+	 *
+	 * @return Forms_Form $form
+	 */
 	static function item_to_form($form_item)
 	{
-		$form = Forms::Form(str_replace('.', '_', $form_item->full_name))->action(Component_Forms_Router::send_url($form_item->id, $form_item->full_name));
+		$send_url = WS::env()->urls->forms->send_url($form_item->full_name);
+		$form = Forms::Form(str_replace('.', '_', $form_item->full_name))->action($send_url);
 
 		self::$service_fields = self::get_service_fields($form_item->full_name);
+
 		CMS_Fields::form_fields($form, self::$service_fields);
 
 		self::$fields = array();
@@ -142,15 +178,24 @@ class Component_Forms_Render implements Core_ModuleInterface
 
 		foreach ($form_item->fields as $name => $field) {
 			$f = self::parms_for_form($form_item->full_name, $field, true);
-			if (!$f)
+			if (!$f) {
 				continue;
+			}
 			self::add_form_field($form, $name, $f);
 		}
 		CMS_Fields::form_fields($form, self::$fields);
+
 		return $form;
 	}
 
-	static function add_form_field(&$form, $name, &$field)
+	/**
+	 * Добавляет филд в массив филдов
+	 *
+	 * @param $form
+	 * @param string $name
+	 * @param array $field
+	 */
+	static function add_form_field(&$form, $name, &$field) //TODO: $form не используется
 	{
 		$type = trim($field['type']);
 		$value = trim($field['value']);
@@ -160,18 +205,27 @@ class Component_Forms_Render implements Core_ModuleInterface
 		}
 
 		$m = Core_Regexps::match_with_results('/^\{(.+)\}$/', $value);
-		if ($m)
+		if ($m) {
 			$value = CMS::$globals[$m[1]];
-		if ($cookie != '')
+		}
+		if ($cookie != '') {
 			$value = $_COOKIE[$cookie];
+		}
 		$field['value'] = $value;
 
-		if ($type == 'upload')
+		if ($type == 'upload') {
 			self::$uploads[$name] = trim($field['dir']);
+		}
 
 		self::$fields[$name] = $field;
 	}
 
+	/**
+	 * Формирование специальных полей формы
+	 *
+	 * @param string $full_name
+	 * @return array
+	 */
 	static function get_service_fields($full_name)
 	{
 		return array(
@@ -222,10 +276,13 @@ class Component_Forms_Render implements Core_ModuleInterface
 	{
 		$cache_name = "forms:templates:$form_item->full_name:$name";
 		$template = WS::env()->cache->get($cache_name);
-		if(!$template) {
+		if(true || !$template) {
 			$template = false;
 
 			$template_dirs = array(
+				self::name_to_app_path($form_item->full_name),
+				self::name_to_app_path($form_item->name),
+				CMS::component_dir('Forms', 'app/views'),
 				self::name_to_path($form_item->full_name),
 				self::name_to_path($form_item->name),
 				CMS::component_dir('Forms', 'views')
@@ -239,7 +296,7 @@ class Component_Forms_Render implements Core_ModuleInterface
 			}
 
 			if(!$template)
-				$template = self::template_for_compatibility($name, $form_data);
+				$template = self::template_for_compatibility($name, $form_data); //TODO: ЛИШНИЙ АРГУМЕНТ
 
 			WS::env()->cache->set($cache_name, $template);
 		}
@@ -282,6 +339,10 @@ class Component_Forms_Render implements Core_ModuleInterface
 
 	static function name_to_path($name) {
 		return CMS::component_dir('Forms', 'views/').str_replace('.', '_', $name);
+	}
+
+	static function name_to_app_path($name) {
+		return CMS::component_dir('Forms', 'app/views/').str_replace('.', '_', $name);
 	}
 
 }

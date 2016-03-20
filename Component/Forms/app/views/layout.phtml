@@ -1,0 +1,14 @@
+<div data-form-container="1">
+<?php
+	$this->use_styles(CMS::component_static_path('styles/forms.css','Forms'));
+	if($js_lib_required)
+		$this->use_scripts(CMS::component_static_path('scripts/forms.js','Forms'));
+	if($messages) {
+		include(Component_Forms_Render::template('errors', $form_item));
+	}
+?>
+<?php include(Component_Forms_Render::template('inner', $form_item)); ?>
+</div>
+<?php 
+if($ajax)
+	$this->use_scripts(CMS::component_static_path('scripts/jquery.form.js','Forms'), CMS::component_static_path('scripts/ajax.js','Forms'));

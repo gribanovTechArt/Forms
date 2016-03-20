@@ -19,7 +19,7 @@ class Component_Forms_Router extends CMS_Router implements Core_ModuleInterface
 		),
 	);
 
-	public function send_url($id, $name)
+	public function send_url($name)
 	{
 		return "/forms/$name/";
 	}

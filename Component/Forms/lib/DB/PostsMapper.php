@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * Class Component_Forms_DB_PostsMapper
+ *
+ * @method form_id(int $form_id)
+ * @method site(int $form_id)
+ */
 class Component_Forms_DB_PostsMapper extends CMS_ORM_Mapper implements Core_ModuleInterface
 {
 	public function setup()
@@ -19,6 +25,7 @@ class Component_Forms_DB_PostsMapper extends CMS_ORM_Mapper implements Core_Modu
 
 	protected function map_site($form_id)
 	{
+		//TODO:параметр $form_id не используется
 		$site = CMS::admin() ? CMS_Admin::site() : CMS::site();
 		return $this->join('inner', 'forms', 'forms.id=form_id')->where('forms.site=:site', $site);
 	}

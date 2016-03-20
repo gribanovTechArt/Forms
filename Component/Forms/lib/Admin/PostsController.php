@@ -25,17 +25,26 @@ class Component_Forms_Admin_PostsController extends CMS_Controller_Table
 		$this->force_filters['site'] = CMS_Admin::site();
 	}
 
+	/**
+	 * @param Component_Forms_DB_Post $row
+	 */
 	protected function on_row($row)
 	{
-		$url = $this->admin_posts_url($row->id);
+		//TODO: получать значение так или использовать статический метод ComponentForms::admin_posts_url($row->id)
+		$url = WS::env()->urls->forms->admin_posts_url($row->id);
 		$row->title = "<a href='$url'>" . htmlspecialchars($row->title) . "</a>";
 		$row->idate = date('d.m.Y - G:i', $row->idate);
 
 		foreach ($this->list_fields as $name => $field) {
-			if ($name != 'title') $row->$name = htmlspecialchars($row->$name);
+			if ($name != 'title') {
+				$row->$name = htmlspecialchars($row->$name);
+			}
 		}
 	}
 
+	/**
+	 * @return array
+	 */
 	protected function form_fields()
 	{
 		//TODO: возможно ли оставить так
@@ -49,6 +58,9 @@ class Component_Forms_Admin_PostsController extends CMS_Controller_Table
 		return $this->form_fields;
 	}
 
+	/**
+	 * @param Component_Forms_DB_Item $form
+	 */
 	protected function create_form_fields($form)
 	{
 		$this->form_fields = array();
@@ -62,11 +74,14 @@ class Component_Forms_Admin_PostsController extends CMS_Controller_Table
 
 	protected function on_before_list()
 	{
-		$form = CMS::orm()->forms->find((int)$_GET['form_id']);
+		$form_id = WS::env()->request['form_id'];
+		$form = CMS::orm()->forms->find($form_id);
 		if ($form) {
 			$this->title_list = $form->title;
 			$fields = $form->admin_list;
-			if (isset($fields['idate'])) unset($this->list_fields['idate']);
+			if (isset($fields['idate'])) {
+				unset($this->list_fields['idate']);
+			}
 			foreach ($fields as $f => $data) {
 				$this->list_fields[$f] = $data;
 			}

@@ -1,0 +1,22 @@
+<style>
+<!--
+table.main th { font-size: 12px; text-align: left; }
+table.main td { border: 1px dotted #ccc; font-size: 12px; }
+
+//-->
+</style>
+<table class="main" cellspacing="2" cellpadding="5" border="0">
+<?php foreach($fields as $name => $field) if (!isset($field['no_send'])&&$field['type']!='upload'&&$field['type']!='protect'&&$field['type']!='jsprotect'&&$field['type']!='hr'&&$field['type']!='subheader') { ?>
+<?php 
+		$value = trim($post->$name);
+		if ($field['type']=='select') {
+			$items = CMS::items_for_select($field['items']);
+			if (isset($items[$value])) $value = $items[$value];				
+		}	
+?>
+	<tr>
+		<th><?= $field['caption'] ?>:</th>
+		<td><?= nl2br(htmlspecialchars($value)) ?></td>
+	</tr>
+<?php } ?>
+</table>

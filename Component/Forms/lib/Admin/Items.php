@@ -33,6 +33,7 @@ class Component_Forms_Admin_Items extends CMS_Controller_Table
 		$row->title = "<a href='$url'>$row->title</a>";
 	}
 
+	//TODO: зачем это нужно?
 	protected function mnemocode()
 	{
 		return "component.forms.admin.{$this->action}";
